@@ -437,8 +437,8 @@
                 border: none !important;
                 page-break-after: always;
                 width: 200mm !important;
-                height: 280mm !important;
-                min-height: 280mm !important;
+                height: 275mm !important;
+                min-height: 275mm !important;
             }
 
             @page {
@@ -1600,7 +1600,7 @@
                     try {
                         const styleTags = document.querySelectorAll('style');
                         styleTags.forEach(tag => extractedStyles += tag.innerHTML + "\n");
-                    } catch(e) {}
+                    } catch (e) { }
 
                     const docRes = await this.callApi({
                         action: 'saveReport',
