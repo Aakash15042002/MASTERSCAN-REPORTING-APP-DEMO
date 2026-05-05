@@ -214,8 +214,15 @@
         }
 
         @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .input-group {
@@ -472,6 +479,30 @@
             font-size: 0.8rem;
         }
 
+        .remove-img {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--accent-red);
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 5;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            transition: var(--transition);
+        }
+
+        .remove-img:hover {
+            transform: scale(1.1);
+            background: #ff0000;
+        }
+
         /* SIGNATURE */
         .signature-grid {
             display: grid;
@@ -640,6 +671,41 @@
             z-index: 2000;
             display: none;
         }
+
+        /* LOADER */
+        .loader-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            z-index: 3000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #eee;
+            border-top: 5px solid var(--primary-navy);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
     </style>
 </head>
 
@@ -663,16 +729,19 @@
         <main id="screen-home" class="screen active">
             <div class="dashboard-container">
                 <h1 class="dashboard-title">Inspection Dashboard</h1>
-                
+
                 <div class="dept-grid" id="dept-grid">
                     <!-- Cards will be injected by JS for better management -->
                 </div>
 
                 <div id="setup-section" style="display: none;">
                     <div class="home-card">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
                             <h2 id="setup-title" style="color: var(--primary-navy);">Initialize Report</h2>
-                            <button class="btn" style="width: auto; padding: 5px 10px; font-size: 0.8rem; background: #eee;" onclick="app.closeSetup()">Change Dept</button>
+                            <button class="btn"
+                                style="width: auto; padding: 5px 10px; font-size: 0.8rem; background: #eee;"
+                                onclick="app.closeSetup()">Change Dept</button>
                         </div>
 
                         <div class="input-group">
@@ -686,37 +755,55 @@
                             <input type="date" id="home-date">
                         </div>
 
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div style="display: grid; grid-template-columns: 1fr; gap: 15px;">
                             <button class="btn btn-primary" onclick="app.startReport()">Start Report</button>
-                            <button class="btn btn-gold" style="background: #666;" onclick="app.loadSampleData()">Sample Data</button>
                         </div>
 
                         <div id="recent-clients-section" style="margin-top: 1.5rem; display: none;">
-                            <p style="font-size: 0.8rem; font-weight: bold; color: var(--text-muted); margin-bottom: 0.5rem;">RECENT CLIENTS</p>
+                            <p
+                                style="font-size: 0.8rem; font-weight: bold; color: var(--text-muted); margin-bottom: 0.5rem;">
+                                RECENT CLIENTS</p>
                             <div id="recent-clients-list" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
                         </div>
 
-                        <div id="table-preview-section" style="margin-top: 1.5rem; border-top: 1px solid #eee; padding-top: 1rem;">
-                            <p style="font-size: 0.8rem; font-weight: bold; color: var(--text-muted); margin-bottom: 0.5rem;">TABLE LAYOUT</p>
-                            <div id="table-preview-cols" style="font-size: 0.7rem; color: #666; display: flex; flex-wrap: wrap; gap: 5px;"></div>
-                        </div>
 
-                        <div id="resume-draft-container" style="display: none; margin-top: 1.5rem; text-align: center; border-top: 1px solid #eee; padding-top: 1rem;">
-                            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">Unfinished report detected</p>
-                            <button class="btn btn-gold" style="padding: 10px;" onclick="app.resumeDraft()">Resume Draft</button>
+
+
+
+                        <div
+                            style="margin-top: 2rem; border-top: 2px solid var(--secondary-gold); padding-top: 1.5rem;">
+                            <p
+                                style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--primary-navy); font-weight: bold; text-align: center;">
+                                LOAD SAVED REPORT FOR EDITING</p>
+
+                            <div
+                                style="display: grid; grid-template-columns: 1fr 1fr 100px; gap: 10px; margin-bottom: 10px;">
+                                <div class="input-group"
+                                    style="margin-bottom: 0; text-align: left; position: relative;">
+                                    <label style="font-size: 0.7rem;">Client Name</label>
+                                    <input type="text" id="load-client" placeholder="Client Name"
+                                        style="padding: 10px; font-size: 0.9rem;" autocomplete="off">
+                                    <div id="load-client-autocomplete" class="autocomplete-dropdown"></div>
+                                </div>
+                                <div class="input-group" style="margin-bottom: 0; text-align: left;">
+                                    <label style="font-size: 0.7rem;">Date</label>
+                                    <input type="date" id="load-date" style="padding: 10px; font-size: 0.9rem;">
+                                </div>
+                                <div class="input-group" style="margin-bottom: 0; text-align: left;">
+                                    <label style="font-size: 0.7rem;">Report No</label>
+                                    <input type="number" id="load-report-no" placeholder="e.g. 1"
+                                        style="padding: 10px; font-size: 0.9rem;">
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" style="width: 100%; padding: 12px 20px; font-size: 0.9rem;"
+                                onclick="app.loadReportByInfo()">LOAD EXISTING REPORT</button>
+
+
                         </div>
                     </div>
                 </div>
 
-                <div style="max-width: 600px; margin: 0 auto; padding: 2rem; background: rgba(0,0,0,0.02); border-radius: 16px; border: 1px solid #eee; text-align: center;">
-                    <p style="margin-bottom: 1rem; font-size: 0.9rem; color: #666;">Load existing report from Google Drive</p>
-                    <div style="display: flex; gap: 12px;">
-                        <input type="text" id="load-doc-id" placeholder="Paste Google Doc ID here..."
-                            style="flex: 1; padding: 12px; font-size: 1rem; border-radius: 8px; border: 1px solid #ddd;">
-                        <button class="btn btn-gold" style="width: auto; padding: 12px 20px;"
-                            onclick="app.loadReport()">Load Report</button>
-                    </div>
-                </div>
+
             </div>
         </main>
 
@@ -753,6 +840,16 @@
                             onclick="document.getElementById('excel-upload').click()">Upload Excel</button>
                         <input type="file" id="excel-upload" style="display: none;" accept=".xlsx,.xls"
                             onchange="app.handleExcelUpload(this)">
+                    </div>
+                    <div id="excel-info"
+                        style="display: none; margin-bottom: 1rem; padding: 12px; background: #f0f7ff; border-radius: 8px; border-left: 4px solid #003366; font-size: 0.9rem; color: #003366;">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <span><strong>FILE:</strong> <span id="excel-name-display"></span></span>
+                            <span><strong>PAGES:</strong> <span id="excel-pages-display"></span></span>
+                            <button class="btn"
+                                style="width: auto; padding: 2px 8px; font-size: 0.7rem; background: #ddd;"
+                                onclick="app.clearExcel()">Clear</button>
+                        </div>
                     </div>
                     <div class="table-container">
                         <table id="data-table">
@@ -824,6 +921,10 @@
                         style="text-decoration: none;">OPEN DRIVE FOLDER</a>
                     <a id="pdf-link" href="#" target="_blank" class="btn btn-gold"
                         style="text-decoration: none;">DOWNLOAD PDF REPORT</a>
+                    <a id="doc-link" href="#" target="_blank" class="btn"
+                        style="text-decoration: none; background: #2b579a; color: white;">OPEN GOOGLE DOC</a>
+                    <a id="sheet-link" href="#" target="_blank" class="btn"
+                        style="text-decoration: none; background: #0f9d58; color: white;">OPEN DATA SHEET (EXCEL)</a>
                     <button class="btn" style="background: #333; color: white;" onclick="location.reload()">NEW
                         REPORT</button>
                 </div>
@@ -859,6 +960,11 @@
         </div>
 
         <div id="toast" class="toast"></div>
+
+        <div id="loader" class="loader-overlay">
+            <div class="spinner"></div>
+            <div style="font-weight: bold; color: var(--primary-navy);">PROCESSING...</div>
+        </div>
     </div>
 
     <script>
@@ -967,7 +1073,7 @@
         };
 
         const app = {
-            SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbxpzBNpy0IZbFJkH3-xA8nlpJHbCgJOJ69drUqClIL28ztKNKY0ev7C-n5V5JyfHT2Z/exec',
+            SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwg6kws1Ye6xY2EP9P42vS8O0DsHcP1GNLheYWIL2AmslR9vK2TGm1Z0dRQaXVLX5P8/exec',
             driveClients: {},  // Cache: { dept: [clientName, ...] }
 
             state: {
@@ -980,13 +1086,16 @@
                 images: [],
                 signatures: {},
                 grid: { rows: 2, cols: 3 },
-                folderId: null
+                folderId: null,
+                reportNo: null, // New: Track which report folder we are in
+                manualPageCount: 0,
+                excelFileName: ''
             },
 
             init() {
                 document.getElementById('home-date').valueAsDate = new Date();
                 this.renderDeptCards();
-                this.loadDraft();
+
                 this.setupSignatureCanvas();
                 this.setupAutocomplete();
 
@@ -1006,7 +1115,94 @@
                     if (menu) menu.style.display = 'none';
                 });
 
-                setInterval(() => this.saveDraft(), 30000); // Auto-save
+                this.setupTableNavigation();
+            },
+
+            setupTableNavigation() {
+                const table = document.getElementById('data-table');
+                if (!table) return;
+
+                table.addEventListener('keydown', (e) => {
+                    const input = e.target;
+                    if (input.tagName !== 'INPUT') return;
+
+                    const td = input.parentElement;
+                    const tr = td.parentElement;
+                    const colIdx = Array.from(tr.children).indexOf(td);
+                    const rows = Array.from(document.querySelectorAll('#table-body tr'));
+                    const rowIdx = rows.indexOf(tr);
+
+                    if (e.key === 'ArrowDown') {
+                        if (rowIdx < rows.length - 1) {
+                            const nextRow = rows[rowIdx + 1];
+                            const nextInput = nextRow.children[colIdx]?.querySelector('input');
+                            if (nextInput) {
+                                nextInput.focus();
+                                e.preventDefault();
+                            }
+                        }
+                    } else if (e.key === 'ArrowUp') {
+                        if (rowIdx > 0) {
+                            const prevRow = rows[rowIdx - 1];
+                            const prevInput = prevRow.children[colIdx]?.querySelector('input');
+                            if (prevInput) {
+                                prevInput.focus();
+                                e.preventDefault();
+                            }
+                        }
+                    } else if (e.key === 'ArrowRight') {
+                        // Move to next cell if at the end of input
+                        if (input.selectionStart === input.value.length) {
+                            const nextTd = td.nextElementSibling;
+                            const nextInput = nextTd?.querySelector('input');
+                            if (nextInput) {
+                                nextInput.focus();
+                                nextInput.setSelectionRange(0, 0);
+                                e.preventDefault();
+                            } else if (rowIdx < rows.length - 1) {
+                                // Move to first input of next row
+                                const nextRow = rows[rowIdx + 1];
+                                const firstInput = nextRow.querySelector('input');
+                                if (firstInput) {
+                                    firstInput.focus();
+                                    firstInput.setSelectionRange(0, 0);
+                                    e.preventDefault();
+                                }
+                            }
+                        }
+                    } else if (e.key === 'ArrowLeft') {
+                        // Move to previous cell if at the beginning of input
+                        if (input.selectionStart === 0) {
+                            const prevTd = td.previousElementSibling;
+                            const prevInput = prevTd?.querySelector('input');
+                            if (prevInput) {
+                                prevInput.focus();
+                                prevInput.setSelectionRange(prevInput.value.length, prevInput.value.length);
+                                e.preventDefault();
+                            } else if (rowIdx > 0) {
+                                // Move to last input of previous row
+                                const prevRow = rows[rowIdx - 1];
+                                const inputsInPrevRow = prevRow.querySelectorAll('input');
+                                const lastInput = inputsInPrevRow[inputsInPrevRow.length - 1];
+                                if (lastInput) {
+                                    lastInput.focus();
+                                    lastInput.setSelectionRange(lastInput.value.length, lastInput.value.length);
+                                    e.preventDefault();
+                                }
+                            }
+                        }
+                    } else if (e.key === 'Enter') {
+                        // Enter also moves down
+                        if (rowIdx < rows.length - 1) {
+                            const nextRow = rows[rowIdx + 1];
+                            const nextInput = nextRow.children[colIdx]?.querySelector('input');
+                            if (nextInput) {
+                                nextInput.focus();
+                                e.preventDefault();
+                            }
+                        }
+                    }
+                });
             },
 
             async fetchDriveClients(dept) {
@@ -1015,8 +1211,10 @@
                 if (this.driveClients[dept]) return this.driveClients[dept];
 
                 try {
-                    const response = await fetch(`${this.SCRIPT_URL}?action=getClients&dept=${dept}`);
-                    const result = await response.json();
+                    const result = await this.callApi({
+                        action: 'getClients',
+                        dept: dept
+                    });
                     this.driveClients[dept] = result.clients || [];
                     return this.driveClients[dept];
                 } catch (err) {
@@ -1028,7 +1226,7 @@
             renderDeptCards() {
                 const grid = document.getElementById('dept-grid');
                 const depts = Object.keys(CONFIG.departments);
-                
+
                 grid.innerHTML = depts.map(id => {
                     const d = CONFIG.departments[id];
                     return `
@@ -1046,19 +1244,17 @@
             async selectDept(id) {
                 this.state.dept = id;
                 const config = CONFIG.departments[id];
-                
+
                 // Update UI
                 document.querySelectorAll('.dept-card').forEach(c => c.classList.remove('active'));
                 document.getElementById(`card-${id}`).classList.add('active');
-                
+
                 document.getElementById('setup-title').innerText = `New ${id} Report`;
                 document.getElementById('setup-section').style.display = 'block';
                 document.getElementById('dept-grid').style.display = 'none';
                 document.querySelector('.dashboard-title').style.display = 'none';
-                
-                // Show Table Preview
-                const previewCols = document.getElementById('table-preview-cols');
-                previewCols.innerHTML = config.columns.map(c => `<span style="background:#eee; padding:2px 6px; border-radius:4px;">${c}</span>`).join('');
+
+
 
                 // Fetch and Show Recent Clients
                 const clientsList = document.getElementById('recent-clients-list');
@@ -1069,7 +1265,7 @@
                 const clients = await this.fetchDriveClients(id);
                 if (clients && clients.length) {
                     clientsList.innerHTML = clients.slice(0, 5).map(c => `
-                        <div class="autocomplete-item" style="padding:4px 10px; border-radius:15px; background:var(--bg-light); border:1px solid #ddd; font-size:0.8rem;" onclick="app.selectClient('${c.replace(/'/g, "\\'")}')">${c}</div>
+                        <div class="autocomplete-item" style="padding:4px 10px; border-radius:15px; background:var(--bg-light); border:1px solid #ddd; font-size:0.8rem;" onclick="app.selectClient('${c.replace(/'/g, "\\'")}', 'home-client', 'client-autocomplete')">${c}</div>
                     `).join('');
                 } else {
                     clientsList.innerHTML = '<span style="font-size:0.8rem; color:#999;">No existing clients found in Drive</span>';
@@ -1084,46 +1280,46 @@
             },
 
             setupAutocomplete() {
-                const input = document.getElementById('home-client');
-                const dropdown = document.getElementById('client-autocomplete');
-                let debounceTimer = null;
+                const setup = (inputId, dropdownId) => {
+                    const input = document.getElementById(inputId);
+                    const dropdown = document.getElementById(dropdownId);
+                    let debounceTimer = null;
 
-                const showDropdown = async (val) => {
-                    const dept = this.state.dept;
-                    const clients = await this.fetchDriveClients(dept);
+                    const showDropdown = async (val) => {
+                        const dept = this.state.dept;
+                        const clients = await this.fetchDriveClients(dept);
 
-                    let matches = clients;
-                    if (val && val.length > 0) {
-                        matches = clients.filter(c => c.toLowerCase().includes(val.toLowerCase()));
-                    }
+                        let matches = clients;
+                        if (val && val.length > 0) {
+                            matches = clients.filter(c => c.toLowerCase().includes(val.toLowerCase()));
+                        }
 
-                    if (matches.length) {
-                        dropdown.innerHTML = matches.map(m => `<div class="autocomplete-item" onclick="app.selectClient('${m.replace(/'/g, "\\'")}')">${m}</div>`).join('');
-                        dropdown.style.display = 'block';
-                    } else {
-                        dropdown.style.display = 'none';
-                    }
+                        if (matches.length) {
+                            dropdown.innerHTML = matches.map(m => `<div class="autocomplete-item" onclick="app.selectClient('${m.replace(/'/g, "\\'")}', '${inputId}', '${dropdownId}')">${m}</div>`).join('');
+                            dropdown.style.display = 'block';
+                        } else {
+                            dropdown.style.display = 'none';
+                        }
+                    };
+
+                    input.addEventListener('focus', () => showDropdown(input.value));
+                    input.addEventListener('input', (e) => {
+                        clearTimeout(debounceTimer);
+                        debounceTimer = setTimeout(() => showDropdown(e.target.value), 200);
+                    });
+
+                    document.addEventListener('click', (e) => {
+                        if (e.target !== input) dropdown.style.display = 'none';
+                    });
                 };
 
-                input.addEventListener('focus', () => {
-                    showDropdown(input.value);
-                });
-
-                input.addEventListener('input', (e) => {
-                    clearTimeout(debounceTimer);
-                    debounceTimer = setTimeout(() => showDropdown(e.target.value), 200);
-                });
-
-                // Autocomplete re-fetches when dept changes inside selectDept()
-
-                document.addEventListener('click', (e) => {
-                    if (e.target !== input) dropdown.style.display = 'none';
-                });
+                setup('home-client', 'client-autocomplete');
+                setup('load-client', 'load-client-autocomplete');
             },
 
-            selectClient(name) {
-                document.getElementById('home-client').value = name;
-                document.getElementById('client-autocomplete').style.display = 'none';
+            selectClient(name, inputId, dropdownId) {
+                document.getElementById(inputId).value = name;
+                document.getElementById(dropdownId).style.display = 'none';
             },
 
             initHeaders() {
@@ -1151,9 +1347,10 @@
 
             getFlatColumns() {
                 const cols = [];
+                if (!this.state.customHeaders) return cols;
                 this.state.customHeaders.forEach(h => {
                     if (h.type === 'normal') cols.push(h.text);
-                    else h.subColumns.forEach(sub => cols.push(sub));
+                    else if (h.subColumns) h.subColumns.forEach(sub => cols.push(sub));
                 });
                 return cols;
             },
@@ -1277,9 +1474,16 @@
                 this.state.dept = dept;
                 this.state.client = client;
                 this.state.date = date;
-                this.state.customTitle = null; 
+                this.state.reportNo = null; // New report
+                this.state.customTitle = null;
                 this.state.customHeaders = null; // Important: reset headers for new dept
-                this.state.reportData = {};
+
+                // Initialize reportData with CREATED_DATE
+                this.state.reportData = {
+                    CLIENT: this.state.client,
+                    DATE: date,
+                    CREATED_DATE: date
+                };
                 this.state.tableData = [];
                 this.state.images = [];
                 this.state.signatures = {};
@@ -1368,7 +1572,8 @@
                 <div style="float: right; text-align: right; font-size: 0.8rem; margin-bottom: 10px;">
                     FORM NO: <span style="font-weight: bold; color: var(--primary-navy);">${config.formNo}</span><br>
                     REPORT NO: <input type="text" id="REPORT_NO" value="${this.state.reportData.REPORT_NO || ''}" style="width: 150px; padding: 4px; margin-top: 5px;"><br>
-                    MSE/REF/NO: <input type="text" id="REF_NO" value="${this.state.reportData.REF_NO || ''}" style="width: 150px; padding: 4px; margin-top: 5px;">
+                    MSE/REF/NO: <input type="text" id="REF_NO" value="${this.state.reportData.REF_NO || ''}" style="width: 150px; padding: 4px; margin-top: 5px;"><br>
+                    DATE: <input type="text" id="CREATED_DATE" value="${this.state.reportData.CREATED_DATE || this.state.date}" style="width: 150px; padding: 4px; margin-top: 5px;">
                 </div>
                 <div style="clear: both;"></div>
                 <div class="field-grid">
@@ -1425,6 +1630,14 @@
 
                 head.innerHTML = tr1 + tr2;
 
+                if (this.state.excelFileName) {
+                    document.getElementById('excel-info').style.display = 'block';
+                    document.getElementById('excel-name-display').innerText = this.state.excelFileName;
+                    document.getElementById('excel-pages-display').innerText = this.state.manualPageCount;
+                } else {
+                    document.getElementById('excel-info').style.display = 'none';
+                }
+
                 if (!this.state.tableData || this.state.tableData.length === 0) {
                     body.innerHTML = '';
                     for (let i = 0; i < 5; i++) this.addRow();
@@ -1448,30 +1661,63 @@
             },
 
             handleExcelUpload(input) {
+                if (!input.files || input.files.length === 0) return;
                 const file = input.files[0];
+                this.showLoader(true);
+
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const json = XLSX.utils.sheet_to_json(sheet);
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
-                    this.initHeaders();
-                    this.state.tableData = [];
-                    const flatCols = this.getFlatColumns();
+                        // Use header:1 to get an array of arrays for better index-based mapping
+                        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                        if (rows.length < 2) throw new Error("Excel file appears to be empty or has no data rows.");
 
-                    json.forEach(row => {
-                        const rowData = {};
-                        flatCols.forEach((c, idx) => {
-                            rowData['col_' + idx] = row[c] || row[Object.keys(row)[idx]] || '';
+                        this.state.excelFileName = file.name;
+                        const pageCount = prompt(`Excel file "${file.name}" loaded (${rows.length - 1} rows). How many pages would you like to print this across?`, "1");
+                        this.state.manualPageCount = parseInt(pageCount) || 1;
+
+                        this.initHeaders();
+                        this.state.tableData = [];
+                        const flatCols = this.getFlatColumns();
+
+                        // Skip the first row (headers) and map the rest
+                        const dataRows = rows.slice(1);
+                        dataRows.forEach(row => {
+                            if (!row || row.length === 0) return;
+                            const rowData = {};
+                            flatCols.forEach((c, idx) => {
+                                // Map by index: row[idx] is the value in the idx-th column
+                                let val = row[idx];
+                                if (val === undefined || val === null) val = '';
+                                rowData['col_' + idx] = val.toString();
+                            });
+                            this.state.tableData.push(rowData);
                         });
-                        this.state.tableData.push(rowData);
-                    });
 
-                    this.renderStep2();
-                    this.showToast(`Imported ${json.length} rows`);
+                        this.renderStep2();
+                        this.showToast(`Successfully imported ${this.state.tableData.length} rows from "${file.name}"`);
+                    } catch (err) {
+                        alert("Error processing Excel: " + err.message);
+                    } finally {
+                        this.showLoader(false);
+                    }
+                };
+                reader.onerror = () => {
+                    alert("Error reading file.");
+                    this.showLoader(false);
                 };
                 reader.readAsArrayBuffer(file);
+            },
+
+            clearExcel() {
+                this.state.excelFileName = '';
+                this.state.manualPageCount = 0;
+                this.state.tableData = [];
+                this.renderStep2();
             },
 
             renderStep3() {
@@ -1487,7 +1733,10 @@
                     const img = this.state.images[i] || { src: '', caption: '' };
                     html += `
                 <div class="image-card" onclick="app.triggerImageUpload(${i})">
-                    ${img.src ? `<img src="${img.src}">` : '<span>TAP TO UPLOAD</span>'}
+                    ${img.src ? `
+                        <img src="${img.src}">
+                        <div class="remove-img" onclick="event.stopPropagation(); app.removeImage(${i})">&times;</div>
+                    ` : '<span>TAP TO UPLOAD</span>'}
                     <input type="file" id="img-input-${i}" style="display: none;" accept="image/*" onchange="app.handleImage(this, ${i})">
                     <input type="text" class="image-caption" placeholder="Caption..." value="${img.caption}" 
                            onclick="event.stopPropagation()" onchange="app.updateImageCaption(${i}, this.value)">
@@ -1508,17 +1757,27 @@
             },
 
             handleImage(input, idx) {
+                if (!input.files || !input.files[0]) return;
                 const file = input.files[0];
                 const reader = new FileReader();
                 reader.onload = (e) => {
+                    // Create a completely fresh object to prevent any reference sharing
                     this.state.images[idx] = {
                         src: e.target.result,
                         caption: this.state.images[idx]?.caption || '',
                         fileName: file.name
                     };
+                    input.value = ''; // CRITICAL: Reset input to prevent re-triggering same slot
                     this.renderStep3();
                 };
                 reader.readAsDataURL(file);
+            },
+
+            removeImage(idx) {
+                if (confirm("Remove this image?")) {
+                    this.state.images[idx] = null;
+                    this.renderStep3();
+                }
             },
 
             updateImageCaption(idx, val) {
@@ -1611,11 +1870,30 @@
                 this.activeSigId = sigId;
                 const modal = document.getElementById('sig-modal');
                 const canvas = document.getElementById('signature-canvas');
+                const ctx = canvas.getContext('2d');
                 document.getElementById('sig-title').innerText = role;
                 modal.style.display = 'flex';
+
+                // Set canvas size
                 canvas.width = canvas.offsetWidth;
                 canvas.height = canvas.offsetHeight;
+
                 this.clearSignature();
+
+                // Load existing signature if it exists
+                const sig = this.state.signatures[sigId];
+                if (sig && sig.image) {
+                    const img = new Image();
+                    img.crossOrigin = "anonymous";
+                    img.onload = () => {
+                        // Draw image to fit canvas
+                        const ratio = Math.min(canvas.width / img.width, canvas.height / img.height);
+                        const nw = img.width * ratio;
+                        const nh = img.height * ratio;
+                        ctx.drawImage(img, (canvas.width - nw) / 2, (canvas.height - nh) / 2, nw, nh);
+                    };
+                    img.src = sig.image;
+                }
             },
 
             clearSignature() {
@@ -1658,10 +1936,10 @@
                     <div style="border-top: 2px solid #000; margin-top: auto; padding: 0;">
                         <div style="display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid #000; background: #fff;">
                             ${CONFIG.signatures.map((role, idx) => {
-                                const sigId = `sig_${idx}`;
-                                const s = this.state.signatures[sigId] || {};
-                                const sigDate = s.date ? (() => { const d = new Date(s.date); return String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + d.getFullYear(); })() : '';
-                                return `
+                    const sigId = `sig_${idx}`;
+                    const s = this.state.signatures[sigId] || {};
+                    const sigDate = s.date ? (() => { const d = new Date(s.date); return String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + d.getFullYear(); })() : '';
+                    return `
                                     <div style="border-right: ${idx < 3 ? '1px solid #000' : 'none'}; padding: 4px; height: 130px; position: relative; display: flex; flex-direction: column; font-family: 'Source Sans 3', sans-serif;">
                                         <div style="font-size: 7.5pt; font-weight: bold;">${role}</div>
                                         <div style="font-size: 7.5pt;">Name: <span style="font-weight: normal;">${s.name || ''}</span></div>
@@ -1675,7 +1953,7 @@
                                         </div>
                                     </div>
                                 `;
-                            }).join('')}
+                }).join('')}
                         </div>
                         <div style="text-align: right; font-size: 5.5pt; padding: 1px 5px; font-family: 'Source Sans 3', sans-serif; font-weight: bold;">
                             FORM NO : ${config.formNo}
@@ -1707,7 +1985,7 @@
                         <div>
                             REPORT NO : <span style="font-weight: normal;">${data.REPORT_NO || ''}</span><br>
                             MSE/REF/NO : <span style="font-weight: normal;">${data.REF_NO || ''}</span><br>
-                            TESTED DATE : <span style="font-weight: normal;">${data.date || ''}</span><br>
+                            TESTED DATE : <span style="font-weight: normal;">${data.CREATED_DATE || data.DATE || this.state.date || ''}</span><br>
                             PAGE : <span style="font-weight: normal;">${pageNum} OF ${totalPages}</span>
                         </div>
                     </div>
@@ -1727,25 +2005,27 @@
                 const filteredTableData = this.state.tableData.filter(row => Object.values(row).some(v => v !== ''));
                 const tableChunks = [];
                 let currentIndex = 0;
-                
-                while (currentIndex < filteredTableData.length || (currentIndex === 0 && filteredTableData.length === 0)) {
+                const targetPages = Math.max(1, this.state.manualPageCount || 0);
+
+                while (currentIndex < filteredTableData.length || (targetPages > 0 && tableChunks.length < targetPages)) {
                     let chunkSize = 20;
-                    const potentialRows = filteredTableData.slice(currentIndex, currentIndex + 20);
-                    const hasTallRow = potentialRows.some(row => 
-                        Object.values(row).some(v => v && (v.toString().length > 60 || v.toString().includes('\n')))
-                    );
-                    
-                    if (hasTallRow) chunkSize = 15;
-                    
+                    if (this.state.manualPageCount > 0) {
+                        chunkSize = Math.ceil(filteredTableData.length / this.state.manualPageCount);
+                        if (chunkSize < 1) chunkSize = 1;
+                    } else {
+                        const potentialRows = filteredTableData.slice(currentIndex, currentIndex + 20);
+                        const hasTallRow = potentialRows.some(row =>
+                            Object.values(row).some(v => v && (v.toString().length > 60 || v.toString().includes('\n')))
+                        );
+                        if (hasTallRow) chunkSize = 15;
+                    }
+
                     const chunk = filteredTableData.slice(currentIndex, currentIndex + chunkSize);
-                    if (chunk.length === 0 && tableChunks.length > 0) break;
-                    
-                    tableChunks.push({
-                        rows: chunk,
-                        startIdx: currentIndex
-                    });
+                    tableChunks.push({ rows: chunk, startIdx: currentIndex });
                     currentIndex += chunkSize;
-                    if (filteredTableData.length === 0) break; 
+
+                    if (chunkSize <= 0) break;
+                    if (currentIndex >= filteredTableData.length && targetPages > 0 && tableChunks.length >= targetPages) break;
                 }
 
                 const totalPages = 1 + tableChunks.length + (this.state.images.some(img => img && img.src) ? 1 : 0);
@@ -1762,35 +2042,35 @@
                             <div style="font-family: 'Source Sans 3', sans-serif; font-size: 8pt; flex: 1; display: flex; flex-direction: column;">
                                 <div style="display: grid; grid-template-columns: 180px 10px 1fr; padding: 0;">
                                     ${config.fields.slice(0, 9).map(f => {
-                                        const id = f.replace(/[^A-Z0-9]/g, '_');
-                                        return `
+                    const id = f.replace(/[^A-Z0-9]/g, '_');
+                    return `
                                             <div style="font-weight: bold; padding: 0 10px;">${f}</div>
                                             <div style="padding: 0; text-align: center;">:</div>
                                             <div style="padding: 0 10px;">${data[id] || ''}</div>
                                         `;
-                                    }).join('')}
+                }).join('')}
                                 </div>
                                 <div style="border-top: 2px solid #000; margin: 0;"></div>
                                 <div style="display: grid; grid-template-columns: 180px 10px 1fr; padding: 0;">
                                     ${config.fields.slice(9).map(f => {
-                                        const id = f.replace(/[^A-Z0-9]/g, '_');
-                                        return `
+                    const id = f.replace(/[^A-Z0-9]/g, '_');
+                    return `
                                             <div style="font-weight: bold; padding: 0 10px;">${f}</div>
                                             <div style="padding: 0; text-align: center;">:</div>
                                             <div style="padding: 0 10px;">${data[id] || ''}</div>
                                         `;
-                                    }).join('')}
+                }).join('')}
                                 </div>
                                 <div style="border-top: 2px solid #000; margin: 0;"></div>
                                 <div style="display: grid; grid-template-columns: 180px 10px 1fr; padding: 0;">
                                     ${config.textareas.map(f => {
-                                        const id = f.replace(/[^A-Z0-9]/g, '_');
-                                        return `
+                    const id = f.replace(/[^A-Z0-9]/g, '_');
+                    return `
                                             <div style="font-weight: bold; padding: 0 10px;">${f}</div>
                                             <div style="padding: 0; text-align: center;">:</div>
                                             <div style="padding: 0 10px;">${data[id] || ''}</div>
                                         `;
-                                    }).join('')}
+                }).join('')}
                                 </div>
                                 ${sharedSignatures}
                             </div>
@@ -1803,7 +2083,7 @@
                 tableChunks.forEach((chunk, chunkIdx) => {
                     const pageNum = 2 + chunkIdx;
                     const flatCols = this.getFlatColumns();
-                    
+
                     const knownWeights = {
                         'S/N': 2, 'TAID NO.': 5, 'LINE NO.': 5, 'JOINT NO': 4,
                         'SIZE': 3, 'SCH (THK)': 4, 'WELDING PROCESS': 5,
@@ -1828,36 +2108,36 @@
                                     </style>
                                     <thead>
                                         ${(() => {
-                                            const hasGroup = this.state.customHeaders.some(h => h.type === 'group');
-                                            let tr1 = `<tr style="font-size: 5.5pt;">`;
-                                            let tr2 = hasGroup ? `<tr style="font-size: 5.5pt;">` : '';
+                            const hasGroup = this.state.customHeaders.some(h => h.type === 'group');
+                            let tr1 = `<tr style="font-size: 5.5pt;">`;
+                            let tr2 = hasGroup ? `<tr style="font-size: 5.5pt;">` : '';
 
-                                            this.state.customHeaders.forEach(h => {
-                                                let w = 0;
-                                                if (h.type === 'normal') w = (knownWeights[h.text] || defaultWeight);
-                                                else h.subColumns.forEach(s => w += (knownWeights[s] || defaultWeight));
-                                                const pctW = `width: ${(w / totalWeight * 100).toFixed(1)}%;`;
+                            this.state.customHeaders.forEach(h => {
+                                let w = 0;
+                                if (h.type === 'normal') w = (knownWeights[h.text] || defaultWeight);
+                                else h.subColumns.forEach(s => w += (knownWeights[s] || defaultWeight));
+                                const pctW = `width: ${(w / totalWeight * 100).toFixed(1)}%;`;
 
-                                                if (h.type === 'normal') {
-                                                    tr1 += `<th ${hasGroup ? 'rowspan="2"' : ''} style="border: 1px solid #000; padding: 1px 2px; text-align: center; vertical-align: middle; ${pctW}">${h.text}</th>`;
-                                                } else {
-                                                    tr1 += `<th colspan="${h.subColumns.length}" style="border: 1px solid #000; padding: 1px 2px; text-align: center; ${pctW}">${h.text}</th>`;
-                                                    h.subColumns.forEach(sub => {
-                                                        tr2 += `<th style="border: 1px solid #000; padding: 1px 2px; text-align: center;">${sub}</th>`;
-                                                    });
-                                                }
-                                            });
-                                            return tr1 + '</tr>' + (hasGroup ? tr2 + '</tr>' : '');
-                                        })()}
+                                if (h.type === 'normal') {
+                                    tr1 += `<th ${hasGroup ? 'rowspan="2"' : ''} style="border: 1px solid #000; padding: 1px 2px; text-align: center; vertical-align: middle; ${pctW}">${h.text}</th>`;
+                                } else {
+                                    tr1 += `<th colspan="${h.subColumns.length}" style="border: 1px solid #000; padding: 1px 2px; text-align: center; ${pctW}">${h.text}</th>`;
+                                    h.subColumns.forEach(sub => {
+                                        tr2 += `<th style="border: 1px solid #000; padding: 1px 2px; text-align: center;">${sub}</th>`;
+                                    });
+                                }
+                            });
+                            return tr1 + '</tr>' + (hasGroup ? tr2 + '</tr>' : '');
+                        })()}
                                     </thead>
                                     <tbody>
                                         ${chunk.rows.map((row, rowIdx) => `
                                             <tr style="min-height: 18px;">
                                                 ${flatCols.map((c, colIdx) => {
-                                                    let val = row['col_' + colIdx] || '';
-                                                    if (c === 'S/N' && !val) val = chunk.startIdx + rowIdx + 1;
-                                                    return `<td style="border: 1px solid #000; padding: 1px 2px; text-align: center; font-size: 6pt;">${val}</td>`;
-                                                }).join('')}
+                            let val = row['col_' + colIdx] || '';
+                            if (c === 'S/N' && !val) val = chunk.startIdx + rowIdx + 1;
+                            return `<td style="border: 1px solid #000; padding: 1px 2px; text-align: center; font-size: 6pt;">${val}</td>`;
+                        }).join('')}
                                             </tr>
                                         `).join('')}
                                     </tbody>
@@ -1896,46 +2176,7 @@
             },
 
             /** DATA PERSISTENCE & SYNC */
-            loadSampleData() {
-                this.state.dept = 'PT';
-                document.getElementById('home-client').value = 'EXXON MOBIL';
-                document.getElementById('home-date').value = '2026-04-16';
 
-                this.state.reportData = {
-                    OWNER: 'EXXON MOBIL',
-                    CLIENT: 'EXXON MOBIL',
-                    LOCATION: 'PDU SITE',
-                    PROJECT_NAME: 'PAC TA 2026',
-                    JOB_NO: 'PDU PIPING',
-                    REPORT_NO: 'MSE/SEK/EM/PT/F-031',
-                    REF_NO: 'D2-26-2919',
-                    RESULT: 'ACCEPTABLE'
-                };
-
-                this.state.signatures = {
-                    'sig_0': { name: 'A.UDHAYANITHI', level: 'NDT LEVEL II', image: '' },
-                    'sig_1': { name: 'SURENDRAKUMAR P.V', level: 'ASNT NDT LEVEL III', image: '' }
-                };
-
-                this.showToast("Sample PT data loaded");
-            },
-
-            saveDraft() {
-                localStorage.setItem('masterscan_draft', JSON.stringify(this.state));
-            },
-
-            loadDraft() {
-                const draft = localStorage.getItem('masterscan_draft');
-                if (draft) {
-                    document.getElementById('resume-draft-container').style.display = 'block';
-                }
-            },
-
-            resumeDraft() {
-                const draft = JSON.parse(localStorage.getItem('masterscan_draft'));
-                Object.assign(this.state, draft);
-                this.goToStep(1);
-            },
 
             showToast(msg) {
                 const t = document.getElementById('toast');
@@ -1944,33 +2185,143 @@
                 setTimeout(() => t.style.display = 'none', 3000);
             },
 
+            showLoader(show) {
+                document.getElementById('loader').style.display = show ? 'flex' : 'none';
+            },
+
             /** BACKEND SYNC (MOCK/REAL) */
-            async loadReport() {
-                const docId = document.getElementById('load-doc-id').value.trim();
-                if (!docId) return alert("Please enter a Document ID");
+            async loadReportByInfo() {
+                const client = document.getElementById('load-client').value.trim();
+                const dateRaw = document.getElementById('load-date').value;
+                const reportNo = document.getElementById('load-report-no').value.trim();
+
+                if (!client || !dateRaw) return alert("Please enter Client Name and Date");
 
                 this.showLoader(true);
                 try {
-                    const response = await fetch(`${this.SCRIPT_URL}?action=getReport&docId=${docId}`);
-                    const result = await response.json();
-                    if (result.status === "error") throw new Error(result.message);
+                    const result = await this.callApi({
+                        action: 'findReport',
+                        dept: this.state.dept,
+                        client: client,
+                        date: dateRaw,
+                        reportNo: reportNo
+                    });
 
-                    // Map result back to state
-                    this.state.reportData = result.reportData || {};
-                    this.state.tableData = result.tableData || [];
-                    this.state.signatures = result.signatures || {};
-                    this.state.images = result.images || [];
-
-                    // Set department if found
-                    if (result.dept) this.state.dept = result.dept;
-
-                    this.goToStep(1);
-                    alert("Report loaded successfully!");
+                    if (result.status === "success") {
+                        this.applyLoadedReport(result);
+                        alert(`Report "${result.reportNo}" loaded successfully!`);
+                    } else {
+                        throw new Error(result.message || "Report not found");
+                    }
                 } catch (err) {
                     alert("Error loading report: " + err.message);
                 } finally {
                     this.showLoader(false);
                 }
+            },
+
+
+
+            applyLoadedReport(result) {
+                // Set department first so headers are initialized
+                if (result.dept) {
+                    const normalizedDept = result.dept.trim();
+                    let targetDept = null;
+                    if (CONFIG.departments[normalizedDept]) {
+                        targetDept = normalizedDept;
+                    } else {
+                        targetDept = Object.keys(CONFIG.departments).find(k => k.toLowerCase() === normalizedDept.toLowerCase());
+                    }
+
+                    if (targetDept) {
+                        this.state.dept = targetDept;
+                        // IMPORTANT: Initialize headers for the department
+                        const config = CONFIG.departments[targetDept];
+                        if (config && config.customHeaders) {
+                            this.state.customHeaders = JSON.parse(JSON.stringify(config.customHeaders));
+                        }
+                    }
+                }
+
+                // Map result back to state
+                this.state.reportData = result.reportData || {};
+                this.state.client = this.state.reportData.CLIENT || "";
+                this.state.date = this.state.reportData.DATE || "";
+                this.state.folderId = result.folderId || null;
+                this.state.folderUrl = result.folderUrl || "";
+                this.state.reportNo = result.reportNo || null;
+
+                // Ensure CREATED_DATE is preserved, fallback to saved DATE if missing
+                if (!this.state.reportData.CREATED_DATE && this.state.date) {
+                    this.state.reportData.CREATED_DATE = this.state.date;
+                }
+
+                // Map table data back to col_N format using the department's columns
+                const flatCols = this.getFlatColumns();
+                this.state.tableData = (result.tableData || []).map(row => {
+                    const newRow = {};
+                    flatCols.forEach((colName, idx) => {
+                        newRow['col_' + idx] = row[colName] || '';
+                    });
+                    return newRow;
+                });
+                // Restore Grid Layout if available
+                if (result.reportData && result.reportData.GRID_ROWS) this.state.grid.rows = parseInt(result.reportData.GRID_ROWS);
+                if (result.reportData && result.reportData.GRID_COLS) this.state.grid.cols = parseInt(result.reportData.GRID_COLS);
+
+                // Map signatures back and normalize dates/URLs
+                this.state.signatures = result.signatures || {};
+                
+                // Sanitize images array to ensure no duplicates and proper indexing
+                const rawImages = result.images || [];
+                this.state.images = [];
+                rawImages.forEach((img, idx) => {
+                    if (img) this.state.images[idx] = img;
+                });
+
+                Object.keys(this.state.signatures).forEach(sigId => {
+                    const s = this.state.signatures[sigId];
+                    if (s.date) {
+                        try {
+                            // If it's already YYYY-MM-DD, keep it. Otherwise try to parse.
+                            if (!/^\d{4}-\d{2}-\d{2}$/.test(s.date)) {
+                                // Handle DD.MM.YYYY or DD-MM-YYYY or DD/MM/YYYY
+                                let cleanDate = s.date.toString().replace(/\./g, '-').replace(/\//g, '-');
+                                let parts = cleanDate.split('-');
+                                let d;
+                                if (parts.length === 3) {
+                                    if (parts[0].length === 4) d = new Date(cleanDate); // YYYY-MM-DD
+                                    else d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`); // DD-MM-YYYY -> YYYY-MM-DD
+                                } else {
+                                    d = new Date(s.date);
+                                }
+
+                                if (!isNaN(d.getTime())) {
+                                    const year = d.getFullYear();
+                                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                                    const day = String(d.getDate()).padStart(2, '0');
+                                    s.date = `${year}-${month}-${day}`;
+                                }
+                            }
+                        } catch (e) { console.error("Sig Date Error:", e); }
+                    }
+                });
+
+                // Sync the UI fields for Step 1
+                setTimeout(() => {
+                    const reportNoInput = document.getElementById('REPORT_NO');
+                    if (reportNoInput) {
+                        // Only auto-fill from folder name if no manual report number was saved
+                        if (!this.state.reportData.REPORT_NO) {
+                            const match = (this.state.reportNo || "").match(/\d+/);
+                            reportNoInput.value = match ? match[0] : "";
+                        } else {
+                            reportNoInput.value = this.state.reportData.REPORT_NO;
+                        }
+                    }
+                }, 100);
+
+                this.goToStep(1);
             },
 
             async saveReport() {
@@ -1979,30 +2330,71 @@
                 // SCRIPT_URL is already set at app level
 
                 try {
-                    // 1. Create Hierarchy
-                    const folderRes = await this.callApi({
-                        action: 'createFolders',
-                        dept: this.state.dept,
-                        client: this.state.client,
-                        date: this.state.date
+                    // 1. Create Hierarchy (only if we don't have a folderId yet)
+                    let folderId = this.state.folderId;
+                    let folderUrl = this.state.folderUrl || "";
+                    let signaturesFolderId = null;
+                    let reportName = this.state.reportNo;
+
+                    if (!folderId) {
+                        const folderRes = await this.callApi({
+                            action: 'createFolders',
+                            dept: this.state.dept,
+                            client: this.state.client,
+                            date: this.state.date,
+                            reportNo: this.state.reportNo
+                        });
+                        folderId = folderRes.folderId;
+                        folderUrl = folderRes.folderUrl;
+                        signaturesFolderId = folderRes.signaturesFolderId;
+                        reportName = folderRes.reportName;
+                        this.state.folderId = folderId; // Cache it
+                        this.state.reportNo = reportName;
+                    }
+
+                    // 2. Save Images and Update State with Drive URLs
+                    // Deduplicate images before processing
+                    const processedSrcs = new Set();
+                    const sanitizedImages = [];
+                    this.state.images.forEach((img, idx) => {
+                        if (img && img.src) {
+                            if (!processedSrcs.has(img.src)) {
+                                processedSrcs.add(img.src);
+                                sanitizedImages[idx] = img;
+                            }
+                        }
                     });
+                    this.state.images = sanitizedImages;
 
-                    const folderId = folderRes.folderId;
-
-                    // 2. Save Images
                     for (let i = 0; i < this.state.images.length; i++) {
                         const img = this.state.images[i];
-                        if (img && img.src) {
-                            await this.callApi({
+                        if (img && img.src && img.src.startsWith('data:')) {
+                            const imgRes = await this.callApi({
                                 action: 'uploadImage',
                                 folderId: folderId,
                                 imageBase64: img.src,
                                 fileName: img.fileName || `photo_${i}.jpg`
                             });
+                            if (imgRes && imgRes.fileUrl) img.src = imgRes.fileUrl;
                         }
                     }
 
-                    // Transform tableData for backend
+                    // 2b. Save Signatures and Update State with Drive URLs
+                    const sigFolderId = signaturesFolderId || folderId;
+                    for (let sigId in this.state.signatures) {
+                        const sig = this.state.signatures[sigId];
+                        if (sig && sig.image && sig.image.startsWith('data:')) {
+                            const sigRes = await this.callApi({
+                                action: 'uploadImage',
+                                folderId: sigFolderId,
+                                imageBase64: sig.image,
+                                fileName: `${sigId}.png`
+                            });
+                            if (sigRes && sigRes.fileUrl) sig.image = sigRes.fileUrl;
+                        }
+                    }
+
+                    // 3. Transform tableData for backend
                     const flatCols = this.getFlatColumns();
                     const exportTableData = this.state.tableData.map(row => {
                         const newRow = {};
@@ -2012,15 +2404,7 @@
                         return newRow;
                     });
 
-                    // 3. Save Data Sheet
-                    await this.callApi({
-                        action: 'saveSheet',
-                        folderId: folderId,
-                        tableData: exportTableData,
-                        dept: this.state.dept
-                    });
-
-                    // 4. Save Final Doc
+                    // 4. Prepare reportData and signatures
                     const reportData = {};
                     // Clean keys: replace all non-alphanumeric with underscore and uppercase
                     for (let k in this.state.reportData) {
@@ -2029,6 +2413,9 @@
                     }
                     reportData.date = this.state.date;
                     reportData.client = this.state.client;
+                    reportData.DEPT = this.state.dept;
+                    reportData.GRID_ROWS = this.state.grid.rows;
+                    reportData.GRID_COLS = this.state.grid.cols;
 
                     // Add signatures with specific keys for backend mapping
                     const sigRoles = ["Tested_By", "Reviewed_By", "Reviewed_Witness_By_1", "Reviewed_Witness_By_2"];
@@ -2045,6 +2432,18 @@
                         if (sig.image) signatureImages[key] = sig.image;
                     });
 
+                    // 5. Save Data Sheet
+                    const sheetRes = await this.callApi({
+                        action: 'saveSheet',
+                        folderId: folderId,
+                        tableData: exportTableData,
+                        dept: this.state.dept,
+                        reportData: reportData,
+                        signatures: this.state.signatures,
+                        images: this.state.images
+                    });
+
+                    // 6. Save Final Doc
                     // Extract CSS to send to backend for Word/PDF formatting
                     let extractedStyles = "";
                     try {
@@ -2056,49 +2455,69 @@
                         action: 'saveReport',
                         folderId: folderId,
                         reportData: reportData,
-                        tableData: this.state.tableData,
+                        tableData: exportTableData,
                         signatureImages: signatureImages,
                         dept: this.state.dept,
                         images: this.state.images,
-                        previewHtml: `<style>${extractedStyles}</style>` + document.getElementById('preview-container').innerHTML
+                        previewHtml: `<style>\n${extractedStyles}\n</style>\n` + document.getElementById('preview-container').innerHTML
                     });
 
-                    // Success
-                    document.getElementById('screen-preview').classList.remove('active');
-                    document.getElementById('screen-success').classList.add('active');
-                    document.getElementById('success-path').innerText = `Masterscan Reporting / ${this.state.dept} / ${this.state.client} / ${this.state.date}`;
-                    document.getElementById('drive-link').href = folderRes.folderUrl;
-                    document.getElementById('pdf-link').href = docRes.pdfUrl;
+                    this.showLoader(false);
+                    
+                    // Handle partial success/errors (e.g. permission issues for Doc)
+                    if (docRes.status === "error") {
+                        if (docRes.message.includes("permission") || docRes.message.includes("fetch")) {
+                             alert("PDF Saved, but Google Doc version failed due to permissions. This is normal if you haven't authorized 'external requests'.");
+                        } else {
+                             throw new Error(docRes.message);
+                        }
+                    }
 
-                    localStorage.removeItem('masterscan_draft');
-                    // Clear cached clients so newly created client folders appear next time
-                    this.driveClients = {};
+                    // Show success screen
+                    this.goToStep(1); // Reset internally
+                    document.getElementById('wizard-container').style.display = 'none';
+                    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+                    document.getElementById('screen-success').classList.add('active');
+                    
+                    document.getElementById('success-path').innerText = `${this.state.dept} > ${this.state.client} > ${this.state.date} > ${this.state.reportNo}`;
+                    document.getElementById('drive-link').href = folderUrl;
+                    document.getElementById('pdf-link').href = docRes.pdfUrl || "#";
+                    document.getElementById('doc-link').href = docRes.docUrl || docRes.googleDocUrl || "#";
+                    document.getElementById('sheet-link').href = sheetRes.sheetUrl || "#";
+                    
+                    // Clear draft and cache
+
+                    this.driveClients = {}; 
+                    this.showToast("Report Saved Successfully!");
 
                 } catch (err) {
-                    console.error(err);
-                    this.showToast("Error saving. Check console.");
+                    console.error("Save Error:", err);
+                    alert("Error saving: " + err.message);
+                    this.showLoader(false);
                 }
             },
 
             async callApi(data) {
-                console.log("Calling GAS API with:", data);
+                console.log(`[API Request] Action: ${data.action}`, data);
                 try {
                     const response = await fetch(this.SCRIPT_URL, {
                         method: 'POST',
-                        body: JSON.stringify(data)
+                        body: JSON.stringify(data),
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
                     });
 
+                    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+
                     const result = await response.json();
+                    console.log(`[API Response] Action: ${data.action}`, result);
+                    
+                    if (result.status === "error") throw new Error(result.message);
                     return result;
 
                 } catch (err) {
-                    console.error("API Error:", err);
-                    this.showToast("Connection error. Using mock response.");
-                    return {
-                        folderId: 'mock-folder-id',
-                        folderUrl: 'https://drive.google.com',
-                        docId: 'mock-doc-id'
-                    };
+                    console.error(`[API Error] Action: ${data.action}`, err);
+                    this.showToast(`Connection error: ${err.message}`);
+                    throw err; // Re-throw so the UI knows the save failed
                 }
             }
         };
