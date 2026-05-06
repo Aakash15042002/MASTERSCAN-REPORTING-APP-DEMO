@@ -2389,7 +2389,8 @@
                                 imageBase64: img.src,
                                 fileName: img.fileName || `photo_${Date.now()}.jpg`
                             });
-                            if (imgRes && imgRes.fileUrl) img.src = imgRes.fileUrl;
+                            // Store Drive URL but keep Base64 in .src for the PDF generation (faster)
+                            if (imgRes && imgRes.fileUrl) img.driveUrl = imgRes.fileUrl;
                         }));
                     }
 
@@ -2412,7 +2413,8 @@
                                 imageBase64: item.sig.image,
                                 fileName: `${item.id}.png`
                             });
-                            if (sigRes && sigRes.fileUrl) item.sig.image = sigRes.fileUrl;
+                            // Store Drive URL but keep Base64 for PDF generation
+                            if (sigRes && sigRes.fileUrl) item.sig.driveUrl = sigRes.fileUrl;
                         }));
                     }
 
@@ -2452,7 +2454,8 @@
                         // Ensure keys sent to backend are EXACTLY what it expects
                         reportData[key + '_NAME'] = sig.name || "";
                         reportData[key + '_LEVEL'] = sig.level || "";
-                        if (sig.image) signatureImages[key] = sig.image;
+                        // Use Drive URL for state data to keep it small, but Base64 is used in previewHtml
+                        if (sig.driveUrl || sig.image) signatureImages[key] = sig.driveUrl || sig.image;
                     });
 
                     // 5. Save Data Sheet
@@ -2463,7 +2466,8 @@
                         dept: this.state.dept,
                         reportData: reportData,
                         signatures: this.state.signatures,
-                        images: this.state.images
+                        // Pass images with Drive URLs for the spreadsheet
+                        images: this.state.images.map(img => ({...img, src: img.driveUrl || img.src}))
                     });
 
                     // 6. Save Final Doc
@@ -2509,7 +2513,13 @@
                     document.getElementById('doc-link').href = docRes.docUrl || docRes.googleDocUrl || "#";
                     document.getElementById('sheet-link').href = sheetRes.sheetUrl || "#";
                     
-                    // Clear draft and cache
+                    // Final cleanup: update state to use Drive URLs (reduces memory usage)
+                    this.state.images.forEach(img => { if (img.driveUrl) img.src = img.driveUrl; });
+                    for (let sigId in this.state.signatures) {
+                         const sig = this.state.signatures[sigId];
+                         if (sig.driveUrl) sig.image = sig.driveUrl;
+                    }
+
                     this.driveClients = {}; 
                     this.showToast("Report Saved Successfully!");
                     
@@ -2593,7 +2603,7 @@
                     const timeout = setTimeout(() => {
                         window.removeEventListener('message', messageHandler);
                         cleanup();
-                        reject(new Error("Request timed out after 600s. Large reports with many images or complex data may take longer. Please ensure you have a stable connection and try again."));
+                        reject(new Error("The request is taking longer than expected. Please check your internet connection and the Google Drive folder to see if the files were created."));
                     }, 600000);
 
                     const messageHandler = (event) => {
