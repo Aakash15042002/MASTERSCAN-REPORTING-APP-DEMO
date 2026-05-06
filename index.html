@@ -2325,6 +2325,7 @@
             },
 
             async saveReport() {
+                this.showLoader(true);
                 this.showToast("Creating folders and saving report...");
 
                 // SCRIPT_URL is already set at app level
