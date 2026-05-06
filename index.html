@@ -7,7 +7,9 @@
     <title>Masterscan NDT Report Management</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600&display=swap"
+        rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
@@ -492,7 +494,7 @@
             font-size: 20px;
             cursor: pointer;
             z-index: 5;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
             transition: var(--transition);
         }
 
@@ -961,8 +963,10 @@
 
         <div id="loader" class="loader-overlay">
             <div class="spinner"></div>
-            <div style="font-weight: bold; color: var(--primary-navy); text-align: center; padding: 0 20px;">SAVING REPORT... PLEASE WAIT</div>
-            <div style="font-size: 0.7rem; color: #666; margin-top: 5px;">Do not close the browser or refresh the page</div>
+            <div style="font-weight: bold; color: var(--primary-navy); text-align: center; padding: 0 20px;">SAVING
+                REPORT... PLEASE WAIT</div>
+            <div style="font-size: 0.7rem; color: #666; margin-top: 5px;">Do not close the browser or refresh the page
+            </div>
         </div>
     </div>
 
@@ -2275,7 +2279,7 @@
 
                 // Map signatures back and normalize dates/URLs
                 this.state.signatures = result.signatures || {};
-                
+
                 // Sanitize images array to ensure no duplicates and proper indexing
                 const rawImages = result.images || [];
                 this.state.images = [];
@@ -2377,20 +2381,19 @@
                     // 2. Save Images and Update State with Drive URLs (Parallel Uploads)
                     this.updateLoaderStatus("Step 3/6: Uploading Photos...");
                     const imagesToUpload = this.state.images.filter(img => img && img.src && img.src.startsWith('data:'));
-                    
+
                     // Use a batching approach to avoid overwhelming GAS (3 at a time)
                     for (let i = 0; i < imagesToUpload.length; i += 3) {
                         const batch = imagesToUpload.slice(i, i + 3);
                         this.updateLoaderStatus(`Step 3/6: Uploading Photos (${i + 1}-${Math.min(i + 3, imagesToUpload.length)} of ${imagesToUpload.length})...`);
                         await Promise.all(batch.map(async (img) => {
-                             const imgRes = await this.callApi({
+                            const imgRes = await this.callApi({
                                 action: 'uploadImage',
                                 folderId: folderId,
                                 imageBase64: img.src,
                                 fileName: img.fileName || `photo_${Date.now()}.jpg`
                             });
-                            // Store Drive URL but keep Base64 in .src for the PDF generation (faster)
-                            if (imgRes && imgRes.fileUrl) img.driveUrl = imgRes.fileUrl;
+                            if (imgRes && imgRes.fileUrl) img.src = imgRes.fileUrl;
                         }));
                     }
 
@@ -2404,7 +2407,7 @@
                             sigsToUpload.push({ id: sigId, sig: sig });
                         }
                     }
-                    
+
                     if (sigsToUpload.length > 0) {
                         await Promise.all(sigsToUpload.map(async (item) => {
                             const sigRes = await this.callApi({
@@ -2413,8 +2416,7 @@
                                 imageBase64: item.sig.image,
                                 fileName: `${item.id}.png`
                             });
-                            // Store Drive URL but keep Base64 for PDF generation
-                            if (sigRes && sigRes.fileUrl) item.sig.driveUrl = sigRes.fileUrl;
+                            if (sigRes && sigRes.fileUrl) item.sig.image = sigRes.fileUrl;
                         }));
                     }
 
@@ -2454,8 +2456,7 @@
                         // Ensure keys sent to backend are EXACTLY what it expects
                         reportData[key + '_NAME'] = sig.name || "";
                         reportData[key + '_LEVEL'] = sig.level || "";
-                        // Use Drive URL for state data to keep it small, but Base64 is used in previewHtml
-                        if (sig.driveUrl || sig.image) signatureImages[key] = sig.driveUrl || sig.image;
+                        if (sig.image) signatureImages[key] = sig.image;
                     });
 
                     // 5. Save Data Sheet
@@ -2466,8 +2467,7 @@
                         dept: this.state.dept,
                         reportData: reportData,
                         signatures: this.state.signatures,
-                        // Pass images with Drive URLs for the spreadsheet
-                        images: this.state.images.map(img => ({...img, src: img.driveUrl || img.src}))
+                        images: this.state.images
                     });
 
                     // 6. Save Final Doc
@@ -2491,13 +2491,13 @@
                     });
 
                     this.showLoader(false);
-                    
+
                     // Handle partial success/errors (e.g. permission issues for Doc)
                     if (docRes.status === "error") {
                         if (docRes.message.includes("permission") || docRes.message.includes("fetch")) {
-                             alert("PDF Saved, but Google Doc version failed due to permissions. This is normal if you haven't authorized 'external requests'.");
+                            alert("PDF Saved, but Google Doc version failed due to permissions. This is normal if you haven't authorized 'external requests'.");
                         } else {
-                             throw new Error(docRes.message);
+                            throw new Error(docRes.message);
                         }
                     }
 
@@ -2506,23 +2506,17 @@
                     document.getElementById('wizard-container').style.display = 'none';
                     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
                     document.getElementById('screen-success').classList.add('active');
-                    
+
                     document.getElementById('success-path').innerText = `${this.state.dept} > ${this.state.client} > ${this.state.date} > ${this.state.reportNo}`;
                     document.getElementById('drive-link').href = folderUrl;
                     document.getElementById('pdf-link').href = docRes.pdfUrl || "#";
                     document.getElementById('doc-link').href = docRes.docUrl || docRes.googleDocUrl || "#";
                     document.getElementById('sheet-link').href = sheetRes.sheetUrl || "#";
-                    
-                    // Final cleanup: update state to use Drive URLs (reduces memory usage)
-                    this.state.images.forEach(img => { if (img.driveUrl) img.src = img.driveUrl; });
-                    for (let sigId in this.state.signatures) {
-                         const sig = this.state.signatures[sigId];
-                         if (sig.driveUrl) sig.image = sig.driveUrl;
-                    }
 
-                    this.driveClients = {}; 
+                    // Clear draft and cache
+                    this.driveClients = {};
                     this.showToast("Report Saved Successfully!");
-                    
+
                     // Definitive success alert as requested
                     setTimeout(() => {
                         alert("✅ Report Saved Successfully!\n\nAll files (PDF, Google Doc, and Data Sheet) have been generated and saved to Google Drive.");
@@ -2553,12 +2547,12 @@
              */
             async callApi(data, retryCount = 1) {
                 console.log(`[API Call] Action: ${data.action}`, data);
-                
+
                 try {
                     // 1. Try standard fetch first
                     const params = new URLSearchParams();
                     params.append('payload', JSON.stringify(data));
-                    
+
                     const response = await fetch(this.SCRIPT_URL, {
                         method: 'POST',
                         body: params,
@@ -2575,19 +2569,19 @@
                 } catch (err) {
                     // 2. If it's a security/ITP block (TypeError or "Load failed"), use the Iframe Bridge
                     const isSecurityBlock = err.name === 'TypeError' || err.message === 'Load failed' || err.message.includes('fetch');
-                    
+
                     if (isSecurityBlock) {
                         console.warn(`[API] Fetch blocked by browser security. Falling back to Iframe Bridge for: ${data.action}`);
                         return this.callApiIframe(data);
                     }
-                    
+
                     // 3. Retry for other types of errors
                     if (retryCount > 0) {
                         console.warn(`[API] Retrying ${data.action}...`);
                         await new Promise(r => setTimeout(r, 1000));
                         return this.callApi(data, retryCount - 1);
                     }
-                    
+
                     throw err;
                 }
             },
@@ -2603,7 +2597,7 @@
                     const timeout = setTimeout(() => {
                         window.removeEventListener('message', messageHandler);
                         cleanup();
-                        reject(new Error("The request is taking longer than expected. Please check your internet connection and the Google Drive folder to see if the files were created."));
+                        reject(new Error("Request timed out after 600s. Large reports with many images or complex data may take longer. Please ensure you have a stable connection and try again."));
                     }, 600000);
 
                     const messageHandler = (event) => {
