@@ -13,7 +13,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';</script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+        // iOS Safari URL hide trick
+        window.onbeforeprint = () => { document.title = ""; };
+        window.onafterprint = () => { document.title = "Masterscan NDT Report Management"; };
+    </script>
 
     <style>
         :root {
@@ -614,17 +620,24 @@
                 border: none !important;
                 page-break-after: always;
                 width: 210mm !important;
-                height: 280mm !important;
-                min-height: 280mm !important;
+                height: 285mm !important;
+                min-height: 285mm !important;
                 display: flex !important;
                 flex-direction: column !important;
                 background: white !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
 
             @page {
                 size: A4;
-                margin: 0;
-                /* Removes browser headers/footers */
+                margin: 0 !important;
+            }
+
+            html,
+            body {
+                width: 210mm;
+                height: 297mm;
             }
         }
 
@@ -2978,42 +2991,12 @@
 
             async saveReport() {
                 this.showLoader(true);
-                this.showToast("Creating folders and saving report...");
-
-                // SCRIPT_URL is already set at app level
+                this.showToast("Preparing report data...");
 
                 try {
-                    // 1. Create Hierarchy (only if we don't have a folderId yet)
-                    let folderId = this.state.folderId;
-                    let folderUrl = this.state.folderUrl || "";
-                    let signaturesFolderId = null;
-                    let reportName = this.state.reportNo;
-
-                    if (!folderId) {
-                        this.updateLoaderStatus("Step 1/6: Creating Folders...");
-                        const folderRes = await this.callApi({
-                            action: 'createFolders',
-                            dept: this.state.dept,
-                            client: this.state.client,
-                            date: this.state.date,
-                            reportNo: this.state.reportNo
-                        });
-                        if (!folderRes || !folderRes.folderId) {
-                            throw new Error("Failed to create Drive folders. Please check your internet and try again.");
-                        }
-
-                        folderId = folderRes.folderId;
-                        folderUrl = folderRes.folderUrl;
-                        signaturesFolderId = folderRes.signaturesFolderId;
-                        reportName = folderRes.reportName;
-                        this.state.folderId = folderId; // Cache it
-                        this.state.reportNo = reportName;
-                    }
-
-                    this.updateLoaderStatus("Step 2/6: Processing Images...");
-
-                    // 2. Save Images and Update State with Drive URLs
-                    // Deduplicate images before processing
+                    this.updateLoaderStatus("Step 1/3: Preparing Payload...");
+                    
+                    // 1. Sanitize and prepare images (don't re-compress, they are already compressed)
                     const processedSrcs = new Set();
                     const sanitizedImages = [];
                     this.state.images.forEach((img, idx) => {
@@ -3026,66 +3009,12 @@
                     });
                     this.state.images = sanitizedImages;
 
-                    // 2. Save Images and Update State with Drive URLs (Parallel Uploads)
-                    this.updateLoaderStatus("Step 3/6: Uploading Photos...");
-                    const imagesToUpload = this.state.images.filter(img => img && img.src && img.src.startsWith('data:'));
-
-                    // Use a larger batching approach (6 at a time) for faster uploads
-                    for (let i = 0; i < imagesToUpload.length; i += 6) {
-                        const batch = imagesToUpload.slice(i, i + 6);
-                        const progress = Math.round((i / imagesToUpload.length) * 100);
-                        this.updateLoaderStatus(`Step 3/6: Uploading Photos (${i + 1}-${Math.min(i + 6, imagesToUpload.length)} of ${imagesToUpload.length}) - ${progress}%...`);
-
-                        await Promise.all(batch.map(async (img) => {
-                            // Compress image before upload
-                            const compressedSrc = await this.compressImage(img.src);
-                            const imgRes = await this.callApi({
-                                action: 'uploadImage',
-                                folderId: folderId,
-                                imageBase64: compressedSrc,
-                                fileName: img.fileName || `photo_${Date.now()}.jpg`
-                            });
-                            if (imgRes && imgRes.fileUrl) img.src = imgRes.fileUrl;
-                        }));
-                    }
-
-                    // 2b. Save Signatures and Update State with Drive URLs (Parallel)
-                    this.updateLoaderStatus("Step 4/6: Uploading Signatures...");
-                    const sigFolderId = signaturesFolderId || folderId;
-                    const sigsToUpload = [];
-                    for (let sigId in this.state.signatures) {
-                        const sig = this.state.signatures[sigId];
-                        if (sig && sig.image && sig.image.startsWith('data:')) {
-                            sigsToUpload.push({ id: sigId, sig: sig });
-                        }
-                    }
-
-                    if (sigsToUpload.length > 0) {
-                        await Promise.all(sigsToUpload.map(async (item) => {
-                            const sigRes = await this.callApi({
-                                action: 'uploadImage',
-                                folderId: sigFolderId,
-                                imageBase64: item.sig.image,
-                                fileName: `${item.id}.png`
-                            });
-                            if (sigRes && sigRes.fileUrl) item.sig.image = sigRes.fileUrl;
-                        }));
-                    }
-
-                    // 3. Transform tableData for backend
-                    this.updateLoaderStatus("Step 5/6: Saving Data Sheets...");
-                    const flatCols = this.getFlatColumns();
-                    const exportTableData = this.state.tableData.map(row => {
-                        const newRow = {};
-                        flatCols.forEach((c, idx) => {
-                            newRow[c] = row['col_' + idx];
-                        });
-                        return newRow;
-                    });
-
-                    // 4. Prepare reportData and signatures
+                    // 2. Prepare signatures and signatureImages
+                    const sigRoles = ["Tested_By", "Reviewed_By", "Reviewed_Witness_By_1", "Reviewed_Witness_By_2"];
+                    const signatureImages = {};
                     const reportData = {};
-                    // Clean keys: replace all non-alphanumeric with underscore and uppercase
+                    
+                    // Clean keys for reportData
                     for (let k in this.state.reportData) {
                         const cleanKey = k.toUpperCase().replace(/[^A-Z0-9]/g, '_');
                         reportData[cleanKey] = this.state.reportData[k];
@@ -3096,80 +3025,75 @@
                     reportData.GRID_ROWS = this.state.grid.rows;
                     reportData.GRID_COLS = this.state.grid.cols;
 
-                    // Add signatures with specific keys for backend mapping
-                    const sigRoles = ["Tested_By", "Reviewed_By", "Reviewed_Witness_By_1", "Reviewed_Witness_By_2"];
-                    const roles = CONFIG.signatures;
-                    const signatureImages = {};
-
-                    roles.forEach((role, idx) => {
+                    CONFIG.signatures.forEach((role, idx) => {
                         const sigId = `sig_${idx}`;
                         const sig = this.state.signatures[sigId] || {};
                         const key = sigRoles[idx];
-                        // Ensure keys sent to backend are EXACTLY what it expects
                         reportData[key + '_NAME'] = sig.name || "";
                         reportData[key + '_LEVEL'] = sig.level || "";
                         if (sig.image) signatureImages[key] = sig.image;
                     });
 
-                    // 5. Save Data Sheet
-                    const sheetRes = await this.callApi({
-                        action: 'saveSheet',
-                        folderId: folderId,
-                        tableData: exportTableData,
-                        dept: this.state.dept,
-                        reportData: reportData,
-                        signatures: this.state.signatures,
-                        images: this.state.images
+                    // 3. Prepare table data
+                    const flatCols = this.getFlatColumns();
+                    const exportTableData = this.state.tableData.map(row => {
+                        const newRow = {};
+                        flatCols.forEach((c, idx) => {
+                            newRow[c] = row['col_' + idx];
+                        });
+                        return newRow;
                     });
 
-                    // 6. Save Final Doc
-                    this.updateLoaderStatus("Step 6/6: Generating PDF & Doc...");
-                    // Extract CSS to send to backend for Word/PDF formatting
+                    // 4. Extract CSS
                     let extractedStyles = "";
                     try {
                         const styleTags = document.querySelectorAll('style');
                         styleTags.forEach(tag => extractedStyles += tag.innerHTML + "\n");
                     } catch (e) { }
 
-                    const docRes = await this.callApi({
-                        action: 'saveReport',
-                        folderId: folderId,
-                        reportData: reportData,
-                        tableData: exportTableData,
-                        signatureImages: signatureImages,
+                    this.updateLoaderStatus("Step 2/3: Uploading everything in one batch...");
+                    this.showToast("Uploading large payload... please stay on this page.");
+
+                    // 5. MASTER SAVE CALL
+                    const response = await this.callApi({
+                        action: 'masterSave',
                         dept: this.state.dept,
+                        client: this.state.client,
+                        date: this.state.date,
+                        reportNo: this.state.reportNo,
+                        tableData: exportTableData,
+                        reportData: reportData,
+                        signatures: this.state.signatures,
                         images: this.state.images,
+                        signatureImages: signatureImages,
                         previewHtml: `<style>\n${extractedStyles}\n</style>\n` + document.getElementById('preview-container').innerHTML
                     });
 
+                    if (response.status === "error") throw new Error(response.message);
+
+                    this.updateLoaderStatus("Step 3/3: Finalizing...");
+                    
+                    // Update state with returned values
+                    this.state.folderId = response.folderId;
+                    this.state.reportNo = response.reportNo;
+
                     this.showLoader(false);
 
-                    // Handle partial success/errors (e.g. permission issues for Doc)
-                    if (docRes.status === "error") {
-                        if (docRes.message.includes("permission") || docRes.message.includes("fetch")) {
-                            alert("PDF Saved, but Google Doc version failed due to permissions. This is normal if you haven't authorized 'external requests'.");
-                        } else {
-                            throw new Error(docRes.message);
-                        }
-                    }
-
                     // Show success screen
-                    this.goToStep(1); // Reset internally
+                    this.goToStep(1); 
                     document.getElementById('wizard-container').style.display = 'none';
                     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
                     document.getElementById('screen-success').classList.add('active');
 
                     document.getElementById('success-path').innerText = `${this.state.dept} > ${this.state.client} > ${this.state.date} > ${this.state.reportNo}`;
-                    document.getElementById('drive-link').href = folderUrl;
-                    document.getElementById('pdf-link').href = docRes.pdfUrl || "#";
-                    document.getElementById('doc-link').href = docRes.docUrl || docRes.googleDocUrl || "#";
-                    document.getElementById('sheet-link').href = sheetRes.sheetUrl || "#";
+                    document.getElementById('drive-link').href = response.folderUrl;
+                    document.getElementById('pdf-link').href = response.pdfUrl || "#";
+                    document.getElementById('doc-link').href = response.docUrl || "#";
+                    document.getElementById('sheet-link').href = response.sheetUrl || "#";
 
-                    // Clear draft and cache
                     this.driveClients = {};
                     this.showToast("Report Saved Successfully!");
 
-                    // Definitive success alert as requested
                     setTimeout(() => {
                         alert("✅ Report Saved Successfully!\n\nAll files (PDF, Google Doc, and Data Sheet) have been generated and saved to Google Drive.");
                     }, 100);
